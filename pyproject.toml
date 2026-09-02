@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "weihai-bus"
+version = "0.1.0"
+description = "实时公交 (timebus.ibuscloud.com) 非官方 Python SDK"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "weihai-bus contributors" }]
+keywords = ["bus", "transit", "weihai", "ibuscloud", "api", "sdk"]
+dependencies = [
+    "httpx>=0.24",
+    "pydantic>=2.0",
+    "typer>=0.12",
+]
+
+[project.scripts]
+weihai = "weihai_bus.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/weihai_bus"]
+
+[tool.hatch.build.targets.sdist]
+packages = ["src/weihai_bus"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
