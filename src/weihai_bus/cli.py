@@ -68,6 +68,33 @@ def _format_route_list(r, verbose: bool) -> str:
     return "\n".join(lines)
 
 
+def _operational_note(
+    first_bus: str,
+    last_bus: str,
+    now: Optional["datetime.datetime"] = None,
+) -> Optional[str]:
+    """根据首末班时间与当前时刻,生成运营状态提示。
+
+    若当前时刻在运营时段内,返回 ``None``(由车辆数据本身反映运行)。
+    若在时段外(未发车或已收班),返回与官方 App 一致的中文文案。
+    """
+    from datetime import datetime
+
+    now = now or datetime.now()
+    try:
+        ft = datetime.strptime(first_bus, "%H:%M:%S").time()
+        lt = datetime.strptime(last_bus, "%H:%M:%S").time()
+    except (ValueError, TypeError):
+        return None  # 首末班缺失或格式异常,无法判断则不加提示
+
+    t = now.time()
+    if t < ft:
+        return f"非车辆运营时间（{first_bus[:5]} 发车）"
+    if t >= lt:
+        return "非车辆运营时间（已过末班）"
+    return None
+
+
 @app.command("routes")
 def routes_cmd(
     name: str = typer.Argument(..., help="线路名关键字，如 1路"),
@@ -127,9 +154,16 @@ def vehicles_cmd(
         mark = f"  [{n}车] " if n else ""
         print(f"  {s.seq_no:>3}. {s.stop_name}{mark}")
     nb = pos.next_buses
+    has_bus = any(len(e.buses) for e in pos.stops) or bool(nb.buses)
     if nb.stop_id:
         desc = nb.no_bus_desc or (f"{len(nb.buses)} 车" if nb.buses else " ")
         print(f"末/途经站点预报: {nb.stop_name}  {desc}")
+
+    # 无在线车辆时,按首末班时间给出与官方 App 一致的运营状态提示
+    if not has_bus and not json_out:
+        note = _operational_note(pos.route.first_bus, pos.route.last_bus)
+        if note:
+            print(f"状态: {note}")
 
 
 # ---------------------------------------------------------------------- #
